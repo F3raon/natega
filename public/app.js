@@ -262,8 +262,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (student.student_case_desc.includes('ناجح')) statusClass = 'pass';
       else if (student.student_case_desc.includes('راسب')) statusClass = 'fail';
 
-      // Percentage calculation out of 410 max degree
-      const percent = ((student.total_degree / 410) * 100).toFixed(2);
+      // Percentage calculation out of 320 max degree
+      const percent = ((student.total_degree / 320) * 100).toFixed(2);
 
       row.innerHTML = `
         <td class="code-font">${rowNum}</td>
@@ -300,8 +300,8 @@ document.addEventListener('DOMContentLoaded', () => {
   function openModal(student) {
     modalName.textContent = student.arabic_name;
     modalSeat.textContent = student.seating_no;
-    modalDegree.textContent = `${student.total_degree} / 410`;
-    modalPercent.textContent = `${((student.total_degree / 410) * 100).toFixed(2)}%`;
+    modalDegree.textContent = `${student.total_degree} / 320`;
+    modalPercent.textContent = `${((student.total_degree / 320) * 100).toFixed(2)}%`;
     modalStatus.textContent = student.student_case_desc;
 
     studentModal.classList.remove('hidden');
