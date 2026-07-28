@@ -8,6 +8,7 @@ import shutil
 import urllib.parse
 import sys
 import math
+import re
 
 # Force UTF-8 stdout/stderr encoding on Windows
 if sys.platform == 'win32':
@@ -31,6 +32,28 @@ def get_db():
     conn.row_factory = sqlite3.Row
     return conn
 
+def build_name_patterns(query_str):
+    words = query_str.strip().split()
+    if not words:
+        return None, None
+
+    processed_patterns = []
+    for w in words:
+        # Normalize compound names starting with 'عبد' (e.g. عبدالرحمن / عبد الرحمن)
+        if w.startswith('عبد') and len(w) > 3 and not w.startswith('عبد '):
+            rest = w[3:].lstrip('ال')
+            rest_norm = re.sub(r'[أإآا]', '_', rest)
+            w_norm = f"عبد%{rest_norm}"
+        else:
+            w_norm = re.sub(r'[أإآا]', '_', w)
+            
+        processed_patterns.append(w_norm)
+
+    ordered_pattern = "%" + "%".join(processed_patterns) + "%"
+    starts_pattern = "%".join(processed_patterns) + "%"
+    
+    return ordered_pattern, starts_pattern
+
 class ThanaweyaSearchHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=PUBLIC_DIR, **kwargs)
@@ -45,7 +68,6 @@ class ThanaweyaSearchHandler(http.server.SimpleHTTPRequestHandler):
         elif path == '/api/stats':
             self.handle_stats_api()
         else:
-            # Serve static files from public directory
             super().do_GET()
 
     def handle_search_api(self, params):
@@ -93,27 +115,29 @@ class ThanaweyaSearchHandler(http.server.SimpleHTTPRequestHandler):
                 rows = [dict(row) for row in cursor.fetchall()]
 
             else: # Search by name
-                words = [w for w in q.split() if w]
-                if not words:
+                ordered_pattern, starts_pattern = build_name_patterns(q)
+                if not ordered_pattern:
                     self.send_json_response({"success": True, "data": [], "total": 0, "page": page, "totalPages": 0})
                     conn.close()
                     return
 
-                conditions = " AND ".join(["arabic_name LIKE ?" for _ in words])
-                sql_params = [f"%{w}%" for w in words]
-
-                count_sql = f"SELECT COUNT(*) as total FROM students WHERE {conditions}"
-                cursor.execute(count_sql, sql_params)
+                count_sql = "SELECT COUNT(*) as total FROM students WHERE arabic_name LIKE ?"
+                cursor.execute(count_sql, (ordered_pattern,))
                 total = cursor.fetchone()['total']
 
-                data_sql = f"""
+                data_sql = """
                     SELECT seating_no, arabic_name, total_degree, student_case_desc
                     FROM students
-                    WHERE {conditions}
-                    ORDER BY seating_no ASC
+                    WHERE arabic_name LIKE ?
+                    ORDER BY 
+                        CASE 
+                            WHEN arabic_name LIKE ? THEN 0
+                            ELSE 1 
+                        END,
+                        seating_no ASC
                     LIMIT ? OFFSET ?
                 """
-                cursor.execute(data_sql, sql_params + [limit, offset])
+                cursor.execute(data_sql, (ordered_pattern, starts_pattern, limit, offset))
                 rows = [dict(row) for row in cursor.fetchall()]
 
             total_pages = math.ceil(total / limit) if total > 0 else 0

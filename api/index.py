@@ -6,6 +6,7 @@ import gzip
 import shutil
 import urllib.parse
 import math
+import re
 
 DB_GZ_PATH = os.path.join(os.path.dirname(__file__), '..', 'students.db.gz')
 LOCAL_DB_PATH = os.path.join(os.path.dirname(__file__), '..', 'students.db')
@@ -27,6 +28,27 @@ def get_db():
     conn = sqlite3.connect(db_file)
     conn.row_factory = sqlite3.Row
     return conn
+
+def build_name_patterns(query_str):
+    words = query_str.strip().split()
+    if not words:
+        return None, None
+
+    processed_patterns = []
+    for w in words:
+        if w.startswith('عبد') and len(w) > 3 and not w.startswith('عبد '):
+            rest = w[3:].lstrip('ال')
+            rest_norm = re.sub(r'[أإآا]', '_', rest)
+            w_norm = f"عبد%{rest_norm}"
+        else:
+            w_norm = re.sub(r'[أإآا]', '_', w)
+            
+        processed_patterns.append(w_norm)
+
+    ordered_pattern = "%" + "%".join(processed_patterns) + "%"
+    starts_pattern = "%".join(processed_patterns) + "%"
+    
+    return ordered_pattern, starts_pattern
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -86,27 +108,29 @@ class handler(BaseHTTPRequestHandler):
                 rows = [dict(row) for row in cursor.fetchall()]
 
             else: # Search by name
-                words = [w for w in q.split() if w]
-                if not words:
+                ordered_pattern, starts_pattern = build_name_patterns(q)
+                if not ordered_pattern:
                     self.send_json_response({"success": True, "data": [], "total": 0, "page": page, "totalPages": 0})
                     conn.close()
                     return
 
-                conditions = " AND ".join(["arabic_name LIKE ?" for _ in words])
-                sql_params = [f"%{w}%" for w in words]
-
-                count_sql = f"SELECT COUNT(*) as total FROM students WHERE {conditions}"
-                cursor.execute(count_sql, sql_params)
+                count_sql = "SELECT COUNT(*) as total FROM students WHERE arabic_name LIKE ?"
+                cursor.execute(count_sql, (ordered_pattern,))
                 total = cursor.fetchone()['total']
 
-                data_sql = f"""
+                data_sql = """
                     SELECT seating_no, arabic_name, total_degree, student_case_desc
                     FROM students
-                    WHERE {conditions}
-                    ORDER BY seating_no ASC
+                    WHERE arabic_name LIKE ?
+                    ORDER BY 
+                        CASE 
+                            WHEN arabic_name LIKE ? THEN 0
+                            ELSE 1 
+                        END,
+                        seating_no ASC
                     LIMIT ? OFFSET ?
                 """
-                cursor.execute(data_sql, sql_params + [limit, offset])
+                cursor.execute(data_sql, (ordered_pattern, starts_pattern, limit, offset))
                 rows = [dict(row) for row in cursor.fetchall()]
 
             total_pages = math.ceil(total / limit) if total > 0 else 0
