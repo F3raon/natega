@@ -1,0 +1,7 @@
+students.db
+students.db.bak
+students_min.db
+node_modules/
+__pycache__/
+*.log
+.env

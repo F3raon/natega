@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>نتيجة الثانوية العامة | محرك البحث المحلي</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  
+  <!-- Background Dynamic Effects -->
+  <div class="bg-glow bg-glow-1"></div>
+  <div class="bg-glow bg-glow-2"></div>
+
+  <!-- Header -->
+  <header class="app-header">
+    <div class="container header-container">
+      <div class="brand">
+        <div class="brand-icon">
+          <i class="fa-solid fa-graduation-cap"></i>
+        </div>
+        <div class="brand-text">
+          <h1>نتائج الثانوية العامة</h1>
+          <span class="badge-subtitle">النظام الحديث | قاعدة البيانات المحلية</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="themeToggle" class="btn-icon" title="تبديل المظهر">
+          <i class="fa-solid fa-moon"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container main-content">
+    
+    <!-- Stats Cards -->
+    <section class="stats-section">
+      <div class="stat-card">
+        <div class="stat-icon purple"><i class="fa-solid fa-users"></i></div>
+        <div class="stat-info">
+          <span class="stat-label">إجمالي الطلاب</span>
+          <h3 id="statTotal" class="stat-value">919,396</h3>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon green"><i class="fa-solid fa-trophy"></i></div>
+        <div class="stat-info">
+          <span class="stat-label">أعلى درجة مسجلة</span>
+          <h3 id="statMax" class="stat-value">--</h3>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon blue"><i class="fa-solid fa-chart-line"></i></div>
+        <div class="stat-info">
+          <span class="stat-label">متوسط الدرجات</span>
+          <h3 id="statAvg" class="stat-value">--</h3>
+        </div>
+      </div>
+    </section>
+
+    <!-- Search Box Card -->
+    <section class="search-box-card">
+      <div class="search-tabs">
+        <button class="search-tab active" data-type="seat">
+          <i class="fa-solid fa-hashtag"></i> البحث برقم الجلوس
+        </button>
+        <button class="search-tab" data-type="name">
+          <i class="fa-solid fa-signature"></i> البحث بالاسم
+        </button>
+      </div>
+
+      <div class="search-input-wrapper">
+        <div class="input-container">
+          <i class="fa-solid fa-magnifying-glass search-icon"></i>
+          <input type="text" id="searchInput" placeholder="أدخل رقم الجلوس هنا... (مثال: 2001970)" autocomplete="off">
+          <button id="clearSearchBtn" class="clear-btn hidden" title="مسح">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <button id="searchBtn" class="btn-primary">
+          <i class="fa-solid fa-magnifying-glass"></i> بحث
+        </button>
+      </div>
+
+      <div class="search-hints">
+        <span class="hint-text" id="searchHint">
+          <i class="fa-solid fa-circle-info"></i> يمكنك إدخال رقم الجلوس كاملاً أو بدايته للبحث الفوري.
+        </span>
+      </div>
+    </section>
+
+    <!-- Results Section -->
+    <section class="results-section">
+      <div class="results-header">
+        <div class="results-title">
+          <h2>نتائج البحث</h2>
+          <span id="resultsCountBadge" class="results-count">0 نتيجة</span>
+        </div>
+        <div class="items-per-page">
+          <label for="limitSelect">عدد النتائج:</label>
+          <select id="limitSelect">
+            <option value="10">10</option>
+            <option value="20" selected>20</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Loading State -->
+      <div id="loadingState" class="state-container hidden">
+        <div class="spinner"></div>
+        <p>جاري البحث في أكثر من 900 ألف سجل...</p>
+      </div>
+
+      <!-- Empty Initial State -->
+      <div id="emptyState" class="state-container">
+        <div class="empty-icon"><i class="fa-solid fa-magnifying-glass-chart"></i></div>
+        <h3>ابدأ البحث الآن</h3>
+        <p>اكتب رقم الجلوس أو اسم الطالب لعرض النتيجة بالتفصيل.</p>
+      </div>
+
+      <!-- No Results Found State -->
+      <div id="noResultsState" class="state-container hidden">
+        <div class="empty-icon warning"><i class="fa-solid fa-folder-open"></i></div>
+        <h3>لم يتم العثور على نتائج</h3>
+        <p>تأكد من صحة رقم الجلوس أو كتابة الاسم بشكل صحيح.</p>
+      </div>
+
+      <!-- Results Table -->
+      <div id="tableWrapper" class="table-wrapper hidden">
+        <table class="results-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>رقم الجلوس</th>
+              <th>اسم الطالب</th>
+              <th>المجموع الكلي</th>
+              <th>النسبة المئوية</th>
+              <th>حالة الطالب</th>
+              <th>إجراءات</th>
+            </tr>
+          </thead>
+          <tbody id="resultsTableBody">
+            <!-- Dynamic Rows -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination Controls -->
+      <div id="pagination" class="pagination-wrapper hidden">
+        <button id="prevPageBtn" class="btn-page" disabled>
+          <i class="fa-solid fa-chevron-right"></i> السابق
+        </button>
+        <span id="pageInfo" class="page-info">الصفحة 1 من 1</span>
+        <button id="nextPageBtn" class="btn-page">
+          التالي <i class="fa-solid fa-chevron-left"></i>
+        </button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Student Result Modal -->
+  <div id="studentModal" class="modal-backdrop hidden">
+    <div class="modal-content card">
+      <button id="closeModalBtn" class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+      <div class="modal-header">
+        <i class="fa-solid fa-award modal-badge-icon"></i>
+        <h2>تفاصيل نتيجة الطالب</h2>
+      </div>
+      <div class="modal-body">
+        <div class="student-card-details">
+          <div class="detail-row">
+            <span class="detail-label">اسم الطالب:</span>
+            <span id="modalName" class="detail-value highlight">--</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">رقم الجلوس:</span>
+            <span id="modalSeat" class="detail-value code-font">--</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">المجموع الكلي:</span>
+            <span id="modalDegree" class="detail-value score">--</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">النسبة المئوية (من 410):</span>
+            <span id="modalPercent" class="detail-value percent">--</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">حالة الطالب:</span>
+            <span id="modalStatus" class="detail-value">--</span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="printModalBtn" class="btn-secondary">
+          <i class="fa-solid fa-print"></i> طباعة النتيجة
+        </button>
+        <button id="copyModalBtn" class="btn-primary">
+          <i class="fa-solid fa-copy"></i> نسخ النتيجة
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="app-footer container">
+    <p>جميع الحقوق محفوظة &copy; 2026 - محرك البحث المحلي للنتائج</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
